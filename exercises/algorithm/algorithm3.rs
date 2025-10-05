@@ -3,10 +3,41 @@
 	This problem requires you to implement a sorting algorithm
 	you can use bubble sorting, insertion sorting, heap sorting, etc.
 */
-// I AM NOT DONE
 
-fn sort<T>(array: &mut [T]){
+fn sort<T:Ord>(array: &mut [T]){
 	//TODO
+    if array.len() <= 1 {
+        return;
+    }
+
+    let length = array.len();
+    for i in (0..length/2-1).rev() {
+        shift_down(array, i, length);
+    }
+
+    for i in (0..length).rev(){
+        array.swap(0, i);
+        shift_down(array,0,i);
+    }
+}
+
+fn shift_down<T: Ord>(array: &mut [T], start: usize, end: usize){
+    let mut index = start;
+    while index * 2 + 1 < end {
+        let mut child = 2*index+1;
+
+        if child+1 < end && array[child+1] > array[child]{
+            child += 1;
+        }
+
+        if array[child] > array[index]{
+            array.swap(child, index);
+            index = child;
+        } else {
+            return;
+        }
+
+    }
 }
 #[cfg(test)]
 mod tests {

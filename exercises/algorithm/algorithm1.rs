@@ -2,7 +2,6 @@
 	single linked list merge
 	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
 
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
@@ -27,6 +26,19 @@ struct LinkedList<T> {
     length: u32,
     start: Option<NonNull<Node<T>>>,
     end: Option<NonNull<Node<T>>>,
+}
+
+impl<T> Drop for LinkedList<T> {
+    fn drop(&mut self) {
+        let mut current = self.start.take();
+        while let Some(ptr) = current {
+            unsafe {
+                let boxed_node = Box::from_raw(ptr.as_ptr());
+
+                current = boxed_node.next;
+            }
+        }
+    }
 }
 
 impl<T> Default for LinkedList<T> {
@@ -69,15 +81,76 @@ impl<T> LinkedList<T> {
             },
         }
     }
-	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
+	pub fn merge(mut list_a:LinkedList<T>,mut list_b:LinkedList<T>) -> Self
+    where
+        T: PartialOrd
 	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+		let mut merged_list = LinkedList::new();
+
+        let mut current_a = list_a.start.take();
+        let mut current_b = list_b.start.take();
+
+        while let (Some(mut n_a), Some(mut n_b)) =  (current_a, current_b) {
+            unsafe{
+                if n_a.as_ref().val <= n_b.as_ref().val {
+                    current_a = n_a.as_ref().next;
+                    current_b = Some(n_b);
+
+                    merged_list.add_node(n_a);
+                } else {
+                    current_a = Some(n_a);
+                    current_b = n_b.as_ref().next;
+
+                    merged_list.add_node(n_b);
+                }
+            }
         }
+
+        if let Some(mut remain_node) = current_a {
+            if merged_list.end.is_some() {
+                unsafe {
+                    (*merged_list.end.unwrap().as_ptr()).next = Some(remain_node);
+                }
+            } else {
+                merged_list.start = Some(remain_node);
+            }
+            merged_list.end = list_a.end; // 前文中let Some(mut remain_node) = current_a这一句不会获取list_a.end导致其所有权转移吗
+        } else if let Some(mut remain_node) = current_b {
+            if merged_list.end.is_some()  {
+                unsafe {
+                    (*merged_list.end.unwrap().as_ptr()).next = Some(remain_node);
+                }
+            } else {
+                merged_list.start = Some(remain_node);
+            }
+            merged_list.end = list_b.end;
+        }
+
+        // update length
+        merged_list.length  = list_a.length + list_b.length;
+
+        list_a.start = None;
+        list_a.end = None;
+        list_b.start = None;
+        list_b.end = None;
+
+		merged_list
 	}
+
+    fn add_node(&mut self, mut node: NonNull<Node<T>>) {
+        unsafe{
+            node.as_mut().next = None;
+
+        }
+
+        match self.end {
+            None => self.start =Some(node),
+            Some(mut end_ptr) => unsafe {
+                end_ptr.as_mut().next = Some(node);
+            },
+        }
+        self.end = Some(node);
+    }
 }
 
 impl<T> Display for LinkedList<T>
@@ -95,7 +168,7 @@ where
 impl<T> Display for Node<T>
 where
     T: Display,
-{
+{ 
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.next {
             Some(node) => write!(f, "{}, {}", self.val, unsafe { node.as_ref() }),

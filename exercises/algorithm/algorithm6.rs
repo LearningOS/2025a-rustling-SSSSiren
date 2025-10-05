@@ -3,8 +3,7 @@
 	This problem requires you to implement a basic DFS traversal
 */
 
-// I AM NOT DONE
-use std::collections::HashSet;
+use std::collections::{HashSet,VecDeque};
 
 struct Graph {
     adj: Vec<Vec<usize>>, 
@@ -30,7 +29,27 @@ impl Graph {
     fn dfs(&self, start: usize) -> Vec<usize> {
         let mut visited = HashSet::new();
         let mut visit_order = Vec::new(); 
-        self.dfs_util(start, &mut visited, &mut visit_order);
+        // self.dfs_util(start, &mut visited, &mut visit_order);
+        let mut stack = VecDeque::new();
+        let mut stack_2 = VecDeque::new();
+
+        stack.push_front(start);
+        visited.insert(start);
+
+        while let Some(target) = stack.pop_front() {
+            visit_order.push(target);
+
+            for &i in &self.adj[target] {
+                if !visited.contains(&i) {
+                    visited.insert(i);
+                    stack_2.push_front(i);
+                    println!("{}",i);
+                }
+            }
+            while let Some(target) = stack_2.pop_front(){
+                stack.push_front(target);
+            }
+        }
         visit_order
     }
 }
